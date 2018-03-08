@@ -1,0 +1,11 @@
+#!/bin/sh
+
+cd /tmp
+export KUBECONFIG=/etc/kubernetes/admin.conf
+
+kubectl get configmap -n kube-system kube-proxy -o yaml > kube-proxy-cm.yaml
+sed -i 's#server:.*#server: https://{{ master_vip }}:6443#g' kube-proxy-cm.yaml
+kubectl apply -f kube-proxy-cm.yaml --force
+
+# restart all kube-proxy pods to ensure that they load the new configmap
+kubectl delete pod -n kube-system -l k8s-app=kube-proxy

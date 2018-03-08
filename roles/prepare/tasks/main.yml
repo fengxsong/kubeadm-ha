@@ -1,0 +1,74 @@
+---
+- name: Increase nproc/nofile limits
+  copy: src=global.conf dest=/etc/security/limits.d/ mode=0644
+
+- name: Manage sysctl
+  sysctl: name=fs.aio-max-nr value=262144 state=present
+
+- name: Remove swapfile from /etc/fstab
+  mount: name=swap fstype=swap state=absent
+
+- name: Disable swap
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Create source list file
+  copy: src="{{ item }}" dest=/etc/apt/sources.list.d/ mode=0644
+  with_items:
+  - docker.list
+  - kubernetes.list
+
+- name: Add gpg key
+  apt_key: url=https://packages.cloud.google.com/apt/doc/apt-key.gpg state=present
+  environment: "{{ proxy_env }}"
+
+- name: Install docker-engine
+  apt: name="docker-engine={{ docker_version }}" state=present allow_unauthenticated=yes
+
+- name: Install pip and perl
+  apt: name="{{ item }}" state=present
+  with_items:
+  - python-pip
+  - perl
+
+- name: Install docker-py
+  pip: name=docker-py state=present
+
+- name: Add current user to docker group
+  command: usermod -aG docker "{{ ansible_user_id }}"
+
+- name: Make sure docker datadir is exists
+  file: path="{{ docker_datadir }}" state=directory mode=0755
+
+- name: Generate docker config
+  template: src=daemon.json.j2 dest=/etc/docker/daemon.json mode=0644
+
+- name: Enable docker service
+  systemd: name=docker state=restarted enabled=yes daemon_reload=yes
+
+- name: Download docker images
+  docker_image: name="{{ item.value.repo }}" tag="{{ item.value.tag }}"
+  with_dict: "{{ downloads }}"
+  when: item.value.master_app is undefined
+
+- name: Install kubelet
+  package: name="{{ item }}" state=present
+  with_items:
+  - "kubectl={{ kube_version }}-00"
+  - "kubernetes-cni={{ kube_cni_version }}-00"
+  environment: "{{ proxy_env }}"
+
+- name: Set cgroups driver to 'cgroupfs' 
+  command: perl -pi -e "s/--cgroup-driver=inetd/--cgroup-driver=cgroupfs/g" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+- name: Enable cadvisor
+  command: perl -pi -e "s/--cadvisor-port=0/--cadvisor-port=4194/g" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+- name: Reload systemd units
+  systemd: daemon_reload=yes
+
+- name: Enable kubelet
+  systemd: name=kubelet enabled=yes
+
+- name: Install ceph-common
+  package: name=ceph-common state=present

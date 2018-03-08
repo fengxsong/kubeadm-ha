@@ -1,0 +1,9 @@
+---
+- name: Enable kubelet
+  systemd: name=kubelet enabled=yes
+
+- name: Copy join script to remote
+  copy: src=/tmp/join-worker-nodes.sh dest=/tmp/join-worker-nodes.sh mode=0755
+
+- name: Run script
+  shell: /tmp/join-worker-nodes.sh

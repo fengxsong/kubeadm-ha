@@ -1,0 +1,15 @@
+---
+- hosts: masters
+  gather_facts: false
+  become: true
+  roles:
+  - { role: join-token, tags: join-token, when: "'primary-master' in group_names" }
+
+- hosts: workers
+  gather_facts: true
+  become: true
+  roles:
+  - { role: prepare, tags: prepare }
+  - { role: worker }
+  tags:
+  - worker

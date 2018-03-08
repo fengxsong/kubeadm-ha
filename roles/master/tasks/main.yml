@@ -1,0 +1,55 @@
+---
+- name: Download docker images
+  docker_image: name="{{ item.value.repo }}" tag="{{ item.value.tag }}"
+  with_dict: "{{ downloads }}"
+  when: item.value.master_app
+
+- name: Install kube master conponent
+  package: name={{ item }} state=present
+  with_items:
+  - "kubectl={{ kube_version }}-00"
+  - "kubeadm={{ kubeadm_version }}-00"
+  environment: "{{ proxy_env }}"
+
+- name: Generate 'kubeadm' configuration file
+  template: src=kubeadm-init.yaml.j2 dest=/tmp/config.yaml
+
+- name: Run 'kubeadm' on primary-master
+  shell: kubeadm init --config=/tmp/config.yaml
+  when: "'primary-master' in group_names"
+
+- name: Pack an archive for k8s CA cert files
+  archive:
+    path: 
+    - "{{ certs_dir }}/ca.crt"
+    - "{{ certs_dir }}/ca.key"
+    - "{{ certs_dir }}/sa.key"
+    - "{{ certs_dir }}/sa.pub"
+    dest: /tmp/pki-k8s.tar.gz
+  when: "'primary-master' in group_names"
+
+- name: Fetch archive
+  fetch: src=/tmp/pki-k8s.tar.gz dest=/tmp/ flat=yes
+  when: "'primary-master' in group_names"
+
+- name: Unarchive k8s CA cert files
+  unarchive: copy=yes src=/tmp/pki-k8s.tar.gz dest="{{ certs_dir }}/"
+  when: "'secondary-masters' in group_names"
+
+- name: Run 'kubeadm' on secondary-masters
+  shell: kubeadm init --config=/tmp/config.yaml
+  when: "'secondary-masters' in group_names"
+
+- name: Install flannel network
+  shell: export KUBECONFIG=/etc/kubernetes/admin.conf; kubectl apply -f "https://raw.githubusercontent.com/coreos/flannel/{{flannel_version}}/Documentation/kube-flannel.yml"
+  when:
+  - "'primary-master' in group_names"
+  - network_plugin == 'flannel'
+
+- name: Generate reconfigure script
+  template: src=configure-workers-cm.sh.j2 dest=/tmp/configure-workers-cm.sh mode=0755
+  when: "'primary-master' in group_names"
+
+- name: Reconfigure kube-proxy to access kube-apiserver via the load balancer
+  command: /tmp/configure-workers-cm.sh
+  when: "'primary-master' in group_names"

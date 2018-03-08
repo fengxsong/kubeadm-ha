@@ -1,0 +1,12 @@
+---
+- name: Install keepalived
+  apt: name=keepalived={{ keepalived_version }} state=present
+
+- name: Generate check_apiserver script
+  template: src=check_apiserver.sh.j2 dest=/etc/keepalived/check_apiserver.sh owner=root group=root mode=0755
+
+- name: Generate keepalived configuration file
+  template: src=keepalived.conf.j2 dest=/etc/keepalived/keepalived.conf
+
+- name: Enable and start keepalived
+  systemd: name=keepalived enabled=yes state=restarted

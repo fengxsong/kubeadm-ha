@@ -1,0 +1,3 @@
+#!/bin/sh
+
+kubeadm join --token {{ TOKEN.stdout }} {{ master_vip }}:6443 --discovery-token-unsafe-skip-ca-verification

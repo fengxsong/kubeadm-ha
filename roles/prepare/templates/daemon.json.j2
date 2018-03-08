@@ -1,0 +1,10 @@
+{
+    "graph": "{{ docker_datadir }}",
+    "storage-driver": "overlay2",
+    "insecure-registries": [
+        {% for registry in docker_insecure_registries %}"{{ registry }}"{% if not loop.last %}, {% endif %}{% endfor %}
+    ],
+    "registry-mirrors": [
+        {% for mirror in docker_registry_mirrors %}"{{ mirror }}"{% if not loop.last %}, {% endif %}{% endfor %}
+    ]
+}

@@ -1,0 +1,37 @@
+---
+- name: Stop and disable keepalived
+  systemd: name=keepalived state=stopped enabled=no
+  when: "'masters' in group_names"
+  tags:
+  - "keepalived"
+  - "master"
+
+- name: Run 'kubeadm reset'
+  command: kubeadm reset
+  tags:
+  - kube
+
+- name: Disable and stop etcd
+  systemd: name=etcd enabled=no state=stopped
+  when: "'masters' in group_names"
+  tags:
+  - "etcd"
+  - "master"
+
+- name: Cleanup etcd datadir on all masters
+  file: path="{{ etcd_datadir }}" state=absent
+  when: "'masters' in group_names"
+  tags:
+  - "etcd"
+  - "master"
+
+- name: Disable and stop kubelet
+  systemd: name=kubelet enabled=no state=stopped
+
+- name: Reboot machine
+  command: /sbin/shutdown -r +1
+  async: 0
+  poll: 0
+  ignore_errors: true
+  tags:
+  - reboot

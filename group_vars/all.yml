@@ -1,0 +1,77 @@
+cluster_name: k8s
+arch: amd64
+
+# Keepalived configuration
+master_vip: ""
+virtual_router_id: 53
+
+# Network settings
+network_plugin: "flannel"
+pod_network_cidr: "10.244.0.0/16"
+
+# Docker configuration
+# a fake registry proxy and cache images from gcr.io
+docker_datadir: "/data/docker"
+docker_insecure_registries:
+  - "gcr.io"
+docker_registry_mirrors:
+  - "http://gcr.io"
+  - "https://registry.docker-cn.com"
+
+certs_dir: "/etc/kubernetes/pki"
+
+# Etcd configuration
+etcd_datadir: "/data/etcd"
+etcd_certs_dir: "{{ certs_dir }}/etcd"
+
+etcd_dl: "https://github.com/coreos/etcd/releases/download/v{{ etcd_version }}/etcd-v{{ etcd_version }}-linux-{{ arch }}.tar.gz"
+
+# Versions
+docker_version: "1.12.6-0~ubuntu-xenial"
+keepalived_version: "1:1.2.19-1"
+kube_version: "1.9.3"
+kubeadm_version: "{{ kube_version }}"
+kube_cni_version: "0.6.0"
+kubedns_version: "1.14.7"
+etcd_version: "3.2.16"
+flannel_version: "v0.9.1"
+pod_infra_version: "3.0"
+
+# Containers
+downloads: 
+  flannel:
+    repo: "quay.io/coreos/flannel"
+    tag: "{{ flannel_version }}-{{ arch }}"
+  pod_infra:
+    repo: "gcr.io/google_containers/pause-{{ arch }}"
+    tag: "{{ pod_infra_version }}"
+  kube_apiserver:
+    repo: "gcr.io/google_containers/kube-apiserver-{{ arch }}"
+    tag: "v{{ kube_version }}"
+    master_app: true
+  kube_controller_manager:
+    repo: "gcr.io/google_containers/kube-controller-manager-{{ arch }}"
+    tag: "v{{ kube_version }}"
+    master_app: true
+  kube_scheduler:
+    repo: "gcr.io/google_containers/kube-scheduler-{{ arch }}"
+    tag: "v{{ kube_version }}"
+    master_app: true
+  kube_proxy:
+    repo: "gcr.io/google_containers/kube-proxy-{{ arch }}"
+    tag: "v{{ kube_version }}"
+  kubedns:
+    repo: "gcr.io/google_containers/k8s-dns-kube-dns-{{ arch }}"
+    tag: "{{ kubedns_version }}"
+  dnsmasq_nanny:
+    repo: "gcr.io/google_containers/k8s-dns-dnsmasq-nanny-{{ arch }}"
+    tag: "{{ kubedns_version }}"
+  dnsmasq_sidecar:
+    repo: "gcr.io/google_containers/k8s-dns-sidecar-{{ arch }}"
+    tag: "{{ kubedns_version }}"
+
+# Runtime proxy env
+ss_local_proxy: ""
+proxy_env:
+  https_proxy: "{{ ss_local_proxy }}"
+  http_proxy: "{{ ss_local_proxy }}"

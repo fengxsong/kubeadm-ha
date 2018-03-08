@@ -1,0 +1,10 @@
+---
+- name: Generate kubeadm join token
+  command: "kubeadm token create"
+  register: TOKEN
+
+- name: Generate command line with join token for adding worker nodes
+  template: src=join-worker-nodes.sh.j2 dest=/tmp/join-worker-nodes.sh mode=0755
+
+- name: Fetch script from master
+  fetch: src=/tmp/join-worker-nodes.sh dest=/tmp/ flat=yes

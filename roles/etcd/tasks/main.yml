@@ -1,0 +1,83 @@
+---
+- name: Get cfssl and cfssljson
+  get_url: url="https://pkg.cfssl.org/R1.2/{{ item }}_linux-{{ arch }}" dest="/tmp/{{ item }}"
+  run_once: true
+  delegate_to: localhost
+  connection: local
+  with_items:
+  - cfssl
+  - cfssljson
+
+- name: Install cfssl and cfssljson
+  copy: src="/tmp/{{ item }}" dest=/usr/local/bin/ mode=0755
+  with_items:
+  - cfssl
+  - cfssljson
+
+- name: Create etcd Ca certs dir
+  file: path="{{ etcd_certs_dir }}"  state=directory
+
+- name: Copy ca-config.json
+  copy: src="{{ item }}" dest="{{ etcd_certs_dir }}/"
+  with_items:
+  - ca-config.json
+  - client.json
+  - ca-csr.json
+  when: "'primary-master' in group_names"
+
+- name: Generate the CA certs
+  shell: "cfssl gencert -initca ca-csr.json | cfssljson -bare ca -"
+  args:
+    chdir: "{{ etcd_certs_dir }}"
+  when: "'primary-master' in group_names"
+
+- name: Generate client certs
+  shell: "cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=client client.json | cfssljson -bare client"
+  args:
+    chdir: "{{ etcd_certs_dir }}"
+  when: "'primary-master' in group_names"
+
+- name: Packs an archive for etcd cert files
+  archive: path="{{ etcd_certs_dir }}/*" dest=/tmp/pki-etcd.tar.gz
+  when: "'primary-master' in group_names"
+
+- name: Fetch archive
+  fetch: src=/tmp/pki-etcd.tar.gz dest=/tmp/ flat=yes
+  when: "'primary-master' in group_names"
+
+- name: Unarchive certs
+  unarchive: copy=yes src=/tmp/pki-etcd.tar.gz dest="{{ etcd_certs_dir }}/"
+  when: "'secondary-masters' in group_names"
+
+- name: Generate script for generating peer certs
+  template: src=gen-peer-certs-fix-perms.sh.j2 dest=/tmp/gen-peer-certs-fix-perms.sh mode=0755
+
+- name: Generate peer certs
+  shell: /tmp/gen-peer-certs-fix-perms.sh
+  args:
+    chdir: "{{ etcd_certs_dir }}"
+
+- name: Make sure etcd datadir exists
+  file: path="{{ etcd_datadir }}" state=directory
+
+- name: Unarchive etcd tarfile from remote locally
+  unarchive: src="{{ etcd_dl }}" dest=/tmp/ remote_src=yes
+  connection: local
+  run_once: true
+  delegate_to: localhost
+  environment: "{{ proxy_env }}"
+
+- name: Install etcd binaries
+  copy: src="/tmp/etcd-v{{ etcd_version }}-linux-{{ arch }}/{{ item }}" dest=/usr/local/bin/ mode=0755
+  with_items:
+  - etcd
+  - etcdctl
+
+- name: Generate etcd service file
+  template: src=etcd.service.j2 dest=/etc/systemd/system/etcd.service mode=0644
+
+- name: Force reload systemd
+  systemd: daemon_reload=yes
+
+- name: Enable and start etcd
+  systemd: name=etcd enabled=yes state=restarted
