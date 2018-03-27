@@ -55,6 +55,7 @@
   package: name="{{ item }}" state=present
   with_items:
   - "kubectl={{ kube_version }}-00"
+  - "kubeadm={{ kubeadm_version }}-00"
   - "kubernetes-cni={{ kube_cni_version }}-00"
   environment: "{{ proxy_env }}"
 

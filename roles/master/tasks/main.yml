@@ -2,13 +2,12 @@
 - name: Download docker images
   docker_image: name="{{ item.value.repo }}" tag="{{ item.value.tag }}"
   with_dict: "{{ downloads }}"
-  when: item.value.master_app
+  when: item.value.master_app is defined and item.value.master_app == true
 
 - name: Install kube master conponent
   package: name={{ item }} state=present
   with_items:
   - "kubectl={{ kube_version }}-00"
-  - "kubeadm={{ kubeadm_version }}-00"
   environment: "{{ proxy_env }}"
 
 - name: Generate 'kubeadm' configuration file
