@@ -29,12 +29,12 @@ etcd_dl: "https://github.com/coreos/etcd/releases/download/v{{ etcd_version }}/e
 # Versions
 docker_version: "1.12.6-0~ubuntu-xenial"
 keepalived_version: "1:1.2.19-1"
-kube_version: "1.9.3"
+kube_version: "1.9.6"
 kubeadm_version: "{{ kube_version }}"
 kube_cni_version: "0.6.0"
 kubedns_version: "1.14.7"
 etcd_version: "3.2.16"
-flannel_version: "v0.9.1"
+flannel_version: "v0.10.0"
 pod_infra_version: "3.0"
 
 # Containers
@@ -69,9 +69,3 @@ downloads:
   dnsmasq_sidecar:
     repo: "gcr.io/google_containers/k8s-dns-sidecar-{{ arch }}"
     tag: "{{ kubedns_version }}"
-
-# Runtime proxy env
-ss_local_proxy: ""
-proxy_env:
-  https_proxy: "{{ ss_local_proxy }}"
-  http_proxy: "{{ ss_local_proxy }}"

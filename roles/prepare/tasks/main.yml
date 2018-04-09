@@ -19,8 +19,7 @@
   - kubernetes.list
 
 - name: Add gpg key
-  apt_key: url=https://packages.cloud.google.com/apt/doc/apt-key.gpg state=present
-  environment: "{{ proxy_env }}"
+  apt_key: url=https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg state=present
 
 - name: Install docker-engine
   apt: name="docker-engine={{ docker_version }}" state=present allow_unauthenticated=yes
@@ -57,7 +56,6 @@
   - "kubectl={{ kube_version }}-00"
   - "kubeadm={{ kubeadm_version }}-00"
   - "kubernetes-cni={{ kube_cni_version }}-00"
-  environment: "{{ proxy_env }}"
 
 - name: Set cgroups driver to 'cgroupfs' 
   command: perl -pi -e "s/--cgroup-driver=inetd/--cgroup-driver=cgroupfs/g" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf

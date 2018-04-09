@@ -65,7 +65,6 @@
   connection: local
   run_once: true
   delegate_to: localhost
-  environment: "{{ proxy_env }}"
 
 - name: Install etcd binaries
   copy: src="/tmp/etcd-v{{ etcd_version }}-linux-{{ arch }}/{{ item }}" dest=/usr/local/bin/ mode=0755
