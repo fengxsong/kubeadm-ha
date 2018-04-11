@@ -28,6 +28,14 @@
 - name: Disable and stop kubelet
   systemd: name=kubelet enabled=no state=stopped
 
+- name: Stop docker service
+  systemd: name=docker enabled=no state=stopped
+  when: cleanup_docker == True
+
+- name: Cleanup docker datadir
+  file: path="{{ docker_datadir }}" state=absent
+  when: cleanup_docker == True
+
 - name: Reboot machine
   command: /sbin/shutdown -r +1
   async: 0

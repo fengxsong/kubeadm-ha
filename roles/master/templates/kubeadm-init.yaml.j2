@@ -10,6 +10,7 @@ etcd:
   caFile: "{{ etcd_certs_dir }}/ca.pem"
   certFile: "{{ etcd_certs_dir }}/client.pem"
   keyFile: "{{ etcd_certs_dir }}/client-key.pem"
+imageRepository: "{{ image_repository }}"
 networking:
   podSubnet: {{ pod_network_cidr }}
 apiServerCertSANs:

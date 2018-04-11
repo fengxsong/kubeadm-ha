@@ -19,10 +19,13 @@
   - kubernetes.list
 
 - name: Add gpg key
-  apt_key: url=https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg state=present
+  apt_key: url="{{ item }}" state=present
+  with_items:
+  - http://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg
+  - https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg
 
 - name: Install docker-engine
-  apt: name="docker-engine={{ docker_version }}" state=present allow_unauthenticated=yes
+  apt: name="docker-ce={{ docker_version }}" state=present update_cache=yes
 
 - name: Install pip and perl
   apt: name="{{ item }}" state=present
@@ -48,14 +51,13 @@
 - name: Download docker images
   docker_image: name="{{ item.value.repo }}" tag="{{ item.value.tag }}"
   with_dict: "{{ downloads }}"
-  when: item.value.master_app is undefined
+  when: item.value.master_app is undefined and not (item.value.skip is defined and item.value.skip)
 
 - name: Install kubelet
   package: name="{{ item }}" state=present
   with_items:
   - "kubectl={{ kube_version }}-00"
   - "kubeadm={{ kubeadm_version }}-00"
-  - "kubernetes-cni={{ kube_cni_version }}-00"
 
 - name: Set cgroups driver to 'cgroupfs' 
   command: perl -pi -e "s/--cgroup-driver=inetd/--cgroup-driver=cgroupfs/g" /etc/systemd/system/kubelet.service.d/10-kubeadm.conf

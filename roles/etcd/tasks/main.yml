@@ -60,7 +60,7 @@
 - name: Make sure etcd datadir exists
   file: path="{{ etcd_datadir }}" state=directory
 
-- name: Unarchive etcd tarfile from remote locally
+- name: Unarchive etcd binary tarfiles
   unarchive: src="{{ etcd_dl }}" dest=/tmp/ remote_src=yes
   connection: local
   run_once: true
